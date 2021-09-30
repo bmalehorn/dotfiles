@@ -1,6 +1,6 @@
 [user]
-	name = Code CI User
-	email = developers@opendoor.com
+  name = Brian Malehorn
+	email = bmalehorn@gmail.com
 [alias]
 	c = checkout
 	cm = commit
