@@ -1,0 +1,86 @@
+[user]
+	name = Code CI User
+	email = developers@opendoor.com
+[alias]
+	c = checkout
+	cm = commit
+	cma = commit --amend
+	s = status -sb
+	b = branch -vv --sort=-committerdate
+	d = diff
+	cp = cherry-pick
+	r = rebase -Xignore-all-space
+	rc = rebase --continue
+	a = add
+	aa = add -A
+	ac = am --continue
+	rl = reflog --pretty=tformat:'%C(yellow)%h %Cblue%>(14)%cr %Cgreen%<(14)%aN%Cred%d %Creset%s'
+	l = log --pretty=tformat:'%C(yellow)%h %Cblue%>(14)%cr %Cgreen%<(14)%aN%Cred%d %Creset%s' --graph
+	lo = log --decorate=no --oneline -n 1
+	f = fetch -p
+	naw = stash save --include-untracked
+	pl = pull --ff-only -p
+	rne = revert --no-edit
+	me = log --author 'Brian Malehorn'
+	rim = r -i master
+	freshen = !git commit --amend --date=`date +%s` --no-edit
+	bump = commit --allow-empty -m 'empty commit'
+	touch = commit --allow-empty -m 'empty commit'
+[color]
+	ui = auto
+[core]
+	excludesfile = ~/.gitignore-global
+	pager = "delta --tabs=2 --hunk-style=plain --highlight-removed --theme='TwoDark' --plus-color='#1c3428' --plus-emph-color='#37664e' --minus-color='#390423' --minus-emph-color='#af0d6c'"
+	# pager = "delta --tabs=2 --hunk-style=plain --highlight-removed"
+	ignorecase = false
+	commitGraph = true
+[diff]
+	submodule = diff
+	indentheuristic = true
+	compactionheuristic = true
+[commit]
+	# default to "git commit -v"
+	verbose = true
+[color "grep"]
+	# mimic "grep -r" colors
+	linenumber = green
+	filename = magenta
+[sendemail]
+	smtpEncryption = tls
+	smtpServer = smtp.gmail.com
+	smtpUser = bmalehorn@gmail.com
+	smtpServerPort = 587
+[status]
+	# showUntrackedFiles = no
+[stash]
+	showpatch = true
+[rebase]
+	autostash = true
+[push]
+	default = simple
+[includeif "gitdir:/Users/brianmalehorn/"]
+	path = .gitconfig-opendoor
+[gc]
+	# https://stackoverflow.com/a/41771616/2574937
+	pruneExpire = 1.hour.ago
+	writeCommitGraph = true
+[help]
+	autocorrect = 1
+[advice]
+  pushNonFastForward = false
+  statusHints        = false
+  commitBeforeMerge  = false
+  resolveConflict    = false
+  implicitIdentity   = false
+  detachedHead       = false
+  waitingForEditor   = false
+[url "git@github.com:opendoor-labs"]
+	insteadOf = https://github.com/opendoor-labs
+[apply]
+	ignoreWhitespace = change
+[url "https://@github.com/opendoor-labs/"]
+	insteadOf = https://github.com/opendoor-labs/
+[bash]
+	showUntrackedFiles = false # disable in fish prompt, because it's slow
+[init]
+	defaultBranch = main
