@@ -1,22 +1,6 @@
 # https://fishshell.com/docs/current/tutorial.html
 # https://github.com/jorgebucaran/awesome-fish
 
-function add_to_path
-    if not test -d $argv[1]
-        return
-    end
-    for path in $PATH
-        if test $argv[1] = $path
-            return
-        end
-    end
-    if test "$argv[2]" = prepend
-        set -x PATH $argv[1] $PATH
-    else
-        set -x PATH $PATH $argv[1]
-    end
-end
-
 # https://github.com/fish-shell/fish-shell/issues/2639
 function remove_from_path
     if set -l ind (contains -i -- $argv[1] $PATH)
@@ -24,32 +8,25 @@ function remove_from_path
     end
 end
 
-remove_from_path ~/bin
-add_to_path ~/bin prepend
-add_to_path ~/.cargo/bin prepend
-
-add_to_path /opt/homebrew/bin
-add_to_path ~/.cask/bin
-add_to_path ~/build/depot_tools
-add_to_path ~/Library/Android/sdk/tools
-add_to_path ~/Library/Android/sdk/platform-tools
+fish_add_path ~/bin
+fish_add_path ~/.cargo/bin
+fish_add_path /opt/homebrew/bin
+fish_add_path ~/.cask/bin
 set -x GOPATH ~/go
-add_to_path $GOPATH/bin
-add_to_path /usr/local/Cellar/gettext/0.19.8.1/bin
-add_to_path ~/.ebcli-virtual-env/executables
-add_to_path ~/.poetry/bin
-add_to_path /usr/local/sbin
-add_to_path /usr/local/bin
+fish_add_path $GOPATH/bin
+# fish_add_path ~/.local/bin
+fish_add_path ~/.poetry/bin
+fish_add_path /usr/local/sbin
+fish_add_path /usr/local/bin
 set -x DENO_INSTALL ~/.deno
-add_to_path $DENO_INSTALL/bin
-add_to_path ~/miniconda3/bin
+fish_add_path $DENO_INSTALL/bin
+fish_add_path ~/depot_tools/
 
 # tmuxinator / asdf junk
 remove_from_path .
 # put these in front by sourcing asdf
 remove_from_path ~/.asdf/shims
 remove_from_path ~/.asdf/bin
-remove_from_path $GOPATH/bin
 
 function fish-ssh-agent
     begin
@@ -65,8 +42,6 @@ fish-ssh-agent
 set -x LANG 'en_US.UTF-8'
 set -x LC_ALL 'en_US.UTF-8'
 set -x ANDROID_HOME $HOME/Library/Android/sdk
-set -x HOMEBREW_GITHUB_API_TOKEN "$GITHUB_TOKEN"
-set -x BRITE_VERIFY_API_TOKEN f1b4269e-56c4-46ee-8e07-c45714156981
 set -x SLUGIFY_USES_TEXT_UNIDECODE yes
 set -x OD_CURRENT_USER_EMAIL brian.malehorn@opendoor.com
 set -x XDG_CONFIG_HOME $HOME/.config
@@ -76,8 +51,6 @@ set -x FZF_FIND_FILE_OPTS "--preview='bat --color=always --style=numbers {}' --h
 set -x VAULT_ADDR 'https://vault.services.opendoor.com:8200'
 set -x KERL_CONFIGURE_OPTIONS "--disable-debug --disable-silent-rules --without-javac --enable-shared-zlib --enable-dynamic-ssl-lib --enable-hipe --enable-sctp --enable-smp-support --enable-threads --enable-kernel-poll --enable-wx --enable-darwin-64bit --with-ssl=/usr/local/Cellar/openssl/1.0.2p"
 set -x AWS_PROFILE od-eng
-set -x GITHUB_TOKEN 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
-# set -x GOROOT ~/go/src/github.com/golang/go
 set -x DOCKER_SCAN_SUGGEST false
 set -e GOROOT
 
@@ -118,9 +91,15 @@ abbr -a agi sudo apt install -y
 abbr -a agr sudo apt remove -y
 abbr -a cdr ca reception
 abbr -a cds ca seller
-abbr -a cdj cd '~/go/src/github.com/opendoor-labs/code/js/'
-abbr -a cdp cd '~/go/src/github.com/opendoor-labs/code/py/'
-abbr -a cdc cd '~/go/src/github.com/opendoor-labs/code/'
+if [ -d ~/go/src/github.com/opendoor-labs/code ]
+    abbr -a cdj cd '~/go/src/github.com/opendoor-labs/code/js/'
+    abbr -a cdp cd '~/go/src/github.com/opendoor-labs/code/py/'
+    abbr -a cdc cd '~/go/src/github.com/opendoor-labs/code/'
+else
+    abbr -a cdj cd '~/code/js/'
+    abbr -a cdp cd '~/code/py/'
+    abbr -a cdc cd '~/code/'
+end
 abbr -a cdd cd ~/Dropbox/stow/dotfiles/
 abbr -a cdo cd '~/open_listings'
 abbr -a cdw cd '~/web'
@@ -128,17 +107,16 @@ abbr -a cdm cd '~/mobile'
 abbr -a cd0 'cd (git rev-parse --show-toplevel)'
 abbr -a sl ls
 abbr -a ac ca
-abbr -a klisten kafka-console-consumer --bootstrap-server localhost:9092 --topic sell.reception.seller_inputs --from-beginning
-abbr -a dex docker run -it --entrypoint /bin/bash
-abbr -a dexu docker run -it --entrypoint /bin/bash ubuntu
+abbr -a dex docker run -it
+abbr -a dexu docker run -it ubuntu
 abbr -a agr sudo apt remove
-abbr -a gls git ls-files .
 abbr -a gc 'git add -A && git commit'
 abbr -a gca 'git add -A && git commit --amend'
 abbr -a git-glob 'git add -A && git commit --amend --no-edit'
 abbr -a ga 'git merge-base origin/HEAD HEAD'
 abbr -a fn 'fd -pFH'
 abbr -a fa 'fd -pIFH'
+abbr -a fe 'fd -IFH -t x'
 abbr -a uniqc 'sort | uniq -c | sort -n'
 abbr -a e code
 abbr -a bi bundle install
@@ -146,16 +124,16 @@ abbr -a gr 'go run cmd/server/*.go'
 abbr -a gyc 'gy && git checkout'
 abbr -a gcy 'gy && git checkout'
 abbr -a gp 'git push (git-pull-request-remote) --set-upstream (git-cb)'
-abbr -a unfuck '/bin/rm -rf ~/go/src/github.com/opendoor-labs/code/go/vendor ~/go/src/github.com/opendoor-labs/code/go/.vendor-new'
 abbr -a dc cd
 abbr -a y yarn
 abbr -a g git
 abbr -a k kubectl
-abbr -a gomon nodemon --watch . -e go --exec
 abbr -a stime hyperfine
 abbr -a ff 'find . -type f | sort'
 abbr -a rubofix bin/rubocop --safe-auto-correct
 abbr -a probe nc -w 1 -v -z
+abbr -a ibrew arch -x86_64 /usr/local/bin/brew
+abbr -a ax arch -x86_64
 
 switch $__INTELLIJ_COMMAND_HISTFILE__
     case '*RubyMine*'
@@ -181,25 +159,17 @@ function code
     end
 end
 
-# rebase + push
-function git-bloop
-    set -l branch $argv[1]
-    if test -z "$branch"
-        set branch (git-cb)
-    end
-    gy
-    git checkout $branch
-    git rebase origin/HEAD
-    git push (git-pull-request-remote) --set-upstream (git-cb) -f
-end
-
 function git-cb
     git symbolic-ref -q HEAD | string replace refs/heads/ ""
 end
 
-function bstow
-    cd ~/Dropbox/stow
-    ./stow.sh
+# move the branch you're currently on to $argv[1]
+function git-migrate
+    set -l src (git rev-parse --abbrev-ref HEAD)
+    set -l dest (git rev-parse $argv[1])
+    git checkout "$dest" &&
+        git branch -f "$src" "$dest" &&
+        git checkout "$src"
 end
 
 function git-pull-request-remote
@@ -292,22 +262,8 @@ function countforks
     math $after - $before - 1
 end
 
-function forkit
-    set -l times $argv[1]
-    for i in (seq $times)
-        /usr/bin/true
-    end
-end
-
 function unique --wraps awk
     awk '!a[$0]++' $argv
-end
-
-function link-legacy
-    cd ~/consumer/packages/legacy
-    and yarn link
-    and cd ~/web/app/assets
-    and yarn link @opendoor/consumer-legacy
 end
 
 function git-v
@@ -399,30 +355,11 @@ function 2webp
     set -l OUTPUT_QUALITY $argv[3]
     echo string replace --regex '\.[^.]*$' _"$SCALE"_"$OUTPUT_QUALITY".webp $IN
     set -l OUT (string replace --regex '\.[^.]*$' _"$SCALE"_"$OUTPUT_QUALITY".webp $IN)
-    # echo "@@ OUT" $OUT
     ffmpeg -i $IN \
         -vf "fps=15,scale=$SCALE:flags=lanczos" \
         -vcodec libwebp -lossless 0 -compression_level 6 \
         -q:v $OUTPUT_QUALITY -loop 0 \
         -preset picture -an -vsync 0 $OUT
-end
-
-function fzc
-    git checkout (git branch -a | fzf | string replace '*' '' | string trim)
-end
-
-function fzt
-    git checkout (git tag | fzf --tac)
-end
-
-function fze
-    code (fzf --preview 'bat --color always {}')
-end
-
-function fzh
-    set -l CMD (fzf --tac < ~/.bashrc-log | string replace --regex '^.* \$ ' '' | string trim)
-    echo $CMD
-    eval $CMD
 end
 
 # git default branch, usually `master` or `main`
@@ -453,12 +390,7 @@ function port
     lsof -nP -i4TCP:$argv[1] | grep LISTEN
 end
 
-function turqoise_hello
-    set_color '#00AFAF'
-    echo hello
-    set_color '#000000'
-end
-
+# portkill 5000
 function portkill
     port $argv[1]
     set -l pids (port $argv[1] | awk '{ print $2 }')
@@ -483,7 +415,11 @@ function copy
 end
 
 function rm --wraps rm
-    trash $argv
+    if type -q trash
+        trash $argv
+    else
+        command rm $argv
+    end
 end
 
 function uuid
@@ -498,21 +434,6 @@ function da
 
     mkdir -p ~/.dtach
     env INSIDE_DTACH="$argv[1]" dtach -z -A ~/.dtach/"$argv[1]" -r none "$SHELL"
-end
-
-function sesh
-    mkdir -p ~/.sesh
-    if [ "$SESH" ]
-        echo "Already inside session \"$SESH\", exitting"
-        return 1
-    end
-    set -l SESH 1
-    if [ "$argv[1]" ]
-        set SESH "$argv[1]"
-    end
-    touch ~/.sesh/$SESH.script
-    /bin/cat ~/.sesh/$SESH.script
-    env SESH=$SESH dtach -A ~/.sesh/$SESH.dtach -r winch script -a ~/.sesh/$SESH.script
 end
 
 # https://github.com/fish-shell/fish-shell/issues/5707#issuecomment-467331991
@@ -532,37 +453,10 @@ function auto_source --on-event fish_preexec -d 'auto source config.fish if gets
 end
 auto_source
 
-function baddies
-    shellcheck ( git ls-files | grep '\.sh$'; git grep -l '#! */usr/bin/env bash\|#! */bin/bash' | sort | uniq ) | awk '/^In/ {print $2}' | sort | uniq
-end
-
-function hyperinator
-    cd
-    command hyperinator $argv
-end
-
-function ya
-    yarn bootstrap $argv &&
-        yarn build $argv &&
-        yarn start $argv
-end
-
-function ybs
-    yarn bootstrap $argv &&
-        yarn start $argv
-end
-
 function upsert
     mkdir -p (dirname $argv[1])
     touch $argv[1]
     code $argv[1]
-end
-
-function clopen
-    cd
-    git clone $argv[1]
-    set -l path (string replace --regex '^.*/([^/.]*)(\.git)?$' '$1' $argv[1])
-    code $path
 end
 
 function bk
@@ -576,48 +470,43 @@ function dora
     cd -
 end
 
-function deadowners
-    set patterns (cat .github/CODEOWNERS CODEOWNERS 2>/dev/null | grep -v '^#' | awk '/./ {print $1}')
-    for pattern in $patterns
-        echo (git ls-files (pwd)/$pattern | wc -l) $pattern
-    end | sort -nr
-end
-
-function serv
-    cat ~/web/.env \
-        $GOPATH/src/github.com/opendoor-labs/code/js/packages/reception-bff/.env* \
-        $GOPATH/src/github.com/opendoor-labs/code/js/packages/athena/.env.local
-end
-
-function flush-abbrs
-    for abbreviation in (abbr | sed -e 's/^abbr.* -- \([a-zA-Z_-]*\).*/\1/g')
-        abbr -e $abbreviation
-    end
-end
-
 function tilde
     string replace ~ '~' $argv[1]
 end
 
+# cd to opendoor service / library
 function ca
+    set -l git_toplevel (git rev-parse --show-toplevel 2>/dev/null)
     if test -z $argv[1]
-        set dir (git rev-parse --show-toplevel)
-        echo cd (tilde $dir)
-        cd $dir
+        echo cd (tilde $git_toplevel)
+        cd $git_toplevel
         return
     end
 
+    set -l code_checkout ~/code
+    if ! [ -d $code_checkout ] && [ -d $GOPATH/src/github.com/opendoor-labs/code ]
+        set -l code_checkout $GOPATH/src/github.com/opendoor-labs/code
+    end
+
     set options \
-        $argv[1] \
-        $GOPATH/src/github.com/opendoor-labs/code/js/packages/$argv[1] \
-        $GOPATH/src/github.com/opendoor-labs/code/go/services/$argv[1] \
-        $GOPATH/src/github.com/opendoor-labs/code/go/lib/$argv[1] \
-        $GOPATH/src/github.com/opendoor-labs/code/py/projects/$argv[1] \
-        $GOPATH/src/github.com/opendoor-labs/code/py/lib/$argv[1] \
-        $GOPATH/src/github.com/opendoor-labs/code/ex/services/$argv[1] \
+        $git_toplevel/js/packages/$argv[1] \
+        $git_toplevel/go/services/$argv[1] \
+        $git_toplevel/go/lib/$argv[1] \
+        $git_toplevel/py/projects/$argv[1] \
+        $git_toplevel/py/lib/$argv[1] \
+        $git_toplevel/py/tools/tools/$argv[1] \
+        $git_toplevel/ex/services/$argv[1] \
+        $git_toplevel/rb/services/$argv[1] \
+        $code_checkout/js/packages/$argv[1] \
+        $code_checkout/go/services/$argv[1] \
+        $code_checkout/go/lib/$argv[1] \
+        $code_checkout/py/projects/$argv[1] \
+        $code_checkout/py/lib/$argv[1] \
+        $code_checkout/py/tools/tools/$argv[1] \
+        $code_checkout/ex/services/$argv[1] \
+        $code_checkout/rb/services/$argv[1] \
         $GOPATH/src/github.com/opendoor-labs/$argv[1] \
-        (git rev-parse --show-toplevel)/$argv[1] \
-        ~/$argv[1]
+        $HOME/$argv[1]
     for option in $options
         if [ -d $option ]
             echo cd (tilde $option)
@@ -641,20 +530,30 @@ end
 function cleanup
     cd
 
-    df | head -2
+    set -l before (df | grep /System/Volumes/Data)
 
+    cd ~/go/src/github.com/opendoor-labs/code/
     yarn cache clean
+    poetry cache clear --all .
+    rm -rf (bazel info repository_cache)
+    rm -rf /private/var/tmp/_bazel_brian.malehornopendoor.com/
 
-    command rm -rf ~/miniconda3/
-    command rm -rf ~/web/tmp/*
-    command rm -rf ~/web/log/*
-    command rm -rf ~/Caches/*
+    rm -rf ~/miniconda3/
+    rm -rf ~/web/tmp/*
+    rm -rf ~/web/log/*
+    rm -rf ~/Caches/*
+    # command rm -rf ~/Library/Caches/*
+    brew cleanup --prune=0
 
     yes | trash -e || true
 
     yes | docker image prune -a || true
+    yes | docker system prune || true
 
-    df | head -2
+    echo "before:"
+    echo "$before"
+    echo "after:"
+    df | grep /System/Volumes/Data
 end
 
 function touchp
@@ -682,8 +581,121 @@ function kubeexec
     kubectl --namespace=$namespace exec -it $instance /od-secret-env-vol/od-secret-env bash
 end
 
+function path_lint
+    for p in $PATH
+        if [ -L $p ] && [ -d $p ]
+            set_color cyan
+            echo $p
+            set_color normal
+        else if [ -d $p ]
+            echo $p
+        else
+            set_color red
+            echo $p
+            set_color normal
+        end
+    end
+end
+
+function ec2_get_my_user_id
+    bash -c 'source /Users/brianmalehorn/tmp-ec2-via-ssm/bin/ec2_script.sh && ec2_get_my_user_id'
+end
+
+function ec2_list_launch_templates
+    bash -c 'source /Users/brianmalehorn/tmp-ec2-via-ssm/bin/ec2_script.sh && ec2_list_launch_templates'
+end
+
+function ec2_create_instance
+    bash -c "source /Users/brianmalehorn/tmp-ec2-via-ssm/bin/ec2_script.sh && ec2_create_instance $argv"
+end
+
+function ec2_upload_ssh_public_key
+    bash -c 'source /Users/brianmalehorn/tmp-ec2-via-ssm/bin/ec2_script.sh && ec2_upload_ssh_public_key'
+end
+
+# in case I copy/paste a whole like like
+#  echo hello
+function 
+    command $argv
+end
+
+
+function tx
+    set -l tarball $argv[1]
+    if [ -z "$tarball" ]
+        echo "Usage: tx <tarball>"
+        return 1
+    end
+    if ! [ -f $tarball ]
+        echo "File $tarball does not exist"
+        return 1
+    end
+    set -l dir
+    set -l command
+    switch "$tarball"
+        case "*.tar.gz"
+            set dir (string sub --end -7 "$tarball")
+            set command tar -xzf $tarball -C $dir
+        case "*.tgz"
+            set dir (string sub --end -4 "$tarball")
+            set command tar -xzf $tarball -C $dir
+        case "*.tar.bz2"
+            set dir (string sub --end -8 "$tarball")
+            set command tar -xjf $tarball -C $dir
+        case "*.tar.xz"
+            set dir (string sub --end -7 "$tarball")
+            set command tar -xJf $tarball -C $dir
+        case "*.zip"
+            set dir (string sub --end -4 "$tarball")
+            set command unzip $tarball -d $dir
+        case "*"
+            echo "Unknown file type: $tarball"
+            return 1
+    end
+    mkdir -p $dir
+    echo $command
+    command $command
+end
+
+# export NVM_DIR="$HOME/.config/nvm"
+# # [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
+# # [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" # This loads nvm bash_completion
+
+# # https://github.com/nvm-sh/nvm#fish
+# function nvm
+#     bass source $NVM_DIR/nvm.sh --no-use ';' nvm $argv
+# end
+
+# # ~/.config/fish/functions/nvm_find_nvmrc.fish
+# function nvm_find_nvmrc
+#     bass source $NVM_DIR/nvm.sh --no-use ';' nvm_find_nvmrc
+# end
+
+# # ~/.config/fish/functions/load_nvm.fish
+# function load_nvm --on-variable="PWD"
+#     set -l default_node_version (nvm version default)
+#     set -l node_version (nvm version)
+#     set -l nvmrc_path (nvm_find_nvmrc)
+#     if test -n "$nvmrc_path"
+#         set -l nvmrc_node_version (nvm version (cat $nvmrc_path))
+#         if test "$nvmrc_node_version" = N/A
+#             nvm install (cat $nvmrc_path)
+#         else if test nvmrc_node_version != node_version
+#             nvm use $nvmrc_node_version
+#         end
+#     else if test "$node_version" != "$default_node_version"
+#         echo "Reverting to default Node version"
+#         nvm use default
+#     end
+# end
+
+
 [ -f ~/.config/fish/hostname-$hostname.fish ] && source ~/.config/fish/hostname-$hostname.fish
 [ -f ~/.config/fish/secrets.fish ] && source ~/.config/fish/secrets.fish
+
+##############################################################
+##############################################################
+##############################################################
 
 # tabtab source for serverless package
 # uninstall by removing these lines or running `tabtab uninstall serverless`
@@ -702,6 +714,7 @@ and source /Users/brianmalehorn/go/src/github.com/opendoor-labs/code/js/packages
 
 [ -f /opt/homebrew/opt/asdf/asdf.fish ] && source /opt/homebrew/opt/asdf/asdf.fish
 [ -f /usr/local/opt/asdf/asdf.fish ] && source /usr/local/opt/asdf/asdf.fish
+[ -f ~/.asdf/asdf.fish ] && source ~/.asdf/asdf.fish
 
 ######### od shell tooling #########
 # these lines added by `code/scripts/development/maybe_install_od_shell_tooling.sh`

@@ -1,5 +1,5 @@
 [user]
-  name = Brian Malehorn
+	name = Brian Malehorn
 	email = bmalehorn@gmail.com
 [alias]
 	c = checkout
@@ -30,10 +30,10 @@
 	ui = auto
 [core]
 	excludesfile = ~/.gitignore-global
-	pager = "delta --tabs=2 --hunk-style=plain --highlight-removed --theme='TwoDark' --plus-color='#1c3428' --plus-emph-color='#37664e' --minus-color='#390423' --minus-emph-color='#af0d6c'"
-	# pager = "delta --tabs=2 --hunk-style=plain --highlight-removed"
+	pager = "delta --tabs=2 --hunk-style=plain --theme='TwoDark' --plus-style='syntax #1c3428' --plus-emph-style='syntax #37664e' --minus-style='syntax #390423' --minus-emph-style='syntax #af0d6c'"
 	ignorecase = false
 	commitGraph = true
+	precomposeUnicode = true
 [diff]
 	submodule = diff
 	indentheuristic = true
