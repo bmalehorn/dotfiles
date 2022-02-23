@@ -30,7 +30,7 @@
 	ui = auto
 [core]
 	excludesfile = ~/.gitignore-global
-	pager = "delta --tabs=2 --hunk-style=plain --theme='TwoDark' --plus-style='syntax #1c3428' --plus-emph-style='syntax #37664e' --minus-style='syntax #390423' --minus-emph-style='syntax #af0d6c'"
+	pager = "if which delta 2>/dev/null 1>&2; then delta --tabs=2 --hunk-style=plain --theme='TwoDark' --plus-style='syntax #1c3428' --plus-emph-style='syntax #37664e' --minus-style='syntax #390423' --minus-emph-style='syntax #af0d6c'; else less -R; fi"
 	ignorecase = false
 	commitGraph = true
 	precomposeUnicode = true
@@ -38,6 +38,7 @@
 	submodule = diff
 	indentheuristic = true
 	compactionheuristic = true
+	algorithm = histogram
 [commit]
 	# default to "git commit -v"
 	verbose = true
@@ -58,7 +59,7 @@
 	autostash = true
 [push]
 	default = simple
-[includeif "gitdir:/Users/brianmalehorn/"]
+[includeif "gitdir:/Users/brian.malehorn/"]
 	path = .gitconfig-opendoor
 [gc]
 	# https://stackoverflow.com/a/41771616/2574937
@@ -80,7 +81,14 @@
 	ignoreWhitespace = change
 [url "https://@github.com/opendoor-labs/"]
 	insteadOf = https://github.com/opendoor-labs/
-[bash]
-	showUntrackedFiles = false # disable in fish prompt, because it's slow
 [init]
 	defaultBranch = main
+# https://www.roboleary.net/vscode/2020/09/15/vscode-git.html
+[diff]
+  tool = vscode
+[difftool "vscode"]
+  cmd = code --wait --diff $LOCAL $REMOTE
+[merge]
+  tool = vscode
+[mergetool "vscode"]
+  cmd = code --wait $MERGED
