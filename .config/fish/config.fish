@@ -14,7 +14,6 @@ fish_add_path /opt/homebrew/bin
 fish_add_path ~/.cask/bin
 set -x GOPATH ~/go
 fish_add_path $GOPATH/bin
-# fish_add_path ~/.local/bin
 fish_add_path ~/.poetry/bin
 fish_add_path /usr/local/sbin
 fish_add_path /usr/local/bin
@@ -22,8 +21,6 @@ set -x DENO_INSTALL ~/.deno
 fish_add_path $DENO_INSTALL/bin
 fish_add_path ~/depot_tools/
 
-# tmuxinator / asdf junk
-remove_from_path .
 # put these in front by sourcing asdf
 remove_from_path ~/.asdf/shims
 remove_from_path ~/.asdf/bin
@@ -163,21 +160,38 @@ function git-cb
     git symbolic-ref -q HEAD | string replace refs/heads/ ""
 end
 
-# move the branch you're currently on to $argv[1]
-function git-migrate
-    set -l src (git rev-parse --abbrev-ref HEAD)
-    set -l dest (git rev-parse $argv[1])
-    git checkout "$dest" &&
-        git branch -f "$src" "$dest" &&
-        git checkout "$src"
-end
-
 function git-pull-request-remote
     if git remote | grep -q bmalehorn
         echo bmalehorn
         return
     end
     echo origin
+end
+
+# git checkout master && git-remote-ref
+# => origin/master
+# git-remote-ref mybranch
+# => mybranch
+# git-remote-ref localonlybranch
+# =>
+function git-remote-ref
+    set -l ref $argv[1]
+    if ! [ "$ref" ]
+        set ref (git symbolic-ref -q HEAD)
+    end
+    git rev-parse --abbrev-ref --symbolic-full-name '@{u}' $ref | head -n 1
+end
+
+# rebase $argv[1] on latest master & push
+function git-reeb
+    set -l ref $argv[1]
+    if ! [ "$ref" ]
+        set ref (git-cb)
+    end
+    gy &&
+        git checkout $ref &&
+        git rebase master &&
+        git push (git-pull-request-remote) --set-upstream (git-cb) -f
 end
 
 function ls --wraps ls
@@ -308,6 +322,15 @@ function 2mp4
     ffmpeg -i $argv[1] -c:v copy -c:a copy $OUT
 end
 
+function 2mp4compat
+    set -l OUT $argv[2]
+    if test "$OUT" = ''
+        set OUT (string replace .mov .mp4 $argv[1])
+        set OUT (string replace .webm .mp4 $argv[1])
+    end
+    ffmpeg -y -i $argv[1] -vcodec libx264 -pix_fmt yuv420p -profile:v baseline -level 3 $OUT
+end
+
 function desk2mp4
     for f in ~/Desktop/*.mov
         set -l OUT (string replace .mov .mp4 $f)
@@ -371,7 +394,7 @@ function gy
     set -l default_branch (gd)
     git checkout $default_branch
     git pull --ff-only -p
-    git branch -vv | grep 'origin/.*: gone]' | awk '{print $1}' | xargs git branch -D
+    git branch -vv | grep -vE '[*+]' | grep 'origin/.*: gone]' | awk '{print $1}' | xargs git branch -D
     # delete ancestor commits
     for refname in (git for-each-ref --format='%(refname)' refs/heads/)
         set -l branch (string replace 'refs/heads/' '' $refname)
@@ -488,25 +511,23 @@ function ca
         set -l code_checkout $GOPATH/src/github.com/opendoor-labs/code
     end
 
-    set options \
-        $git_toplevel/js/packages/$argv[1] \
-        $git_toplevel/go/services/$argv[1] \
-        $git_toplevel/go/lib/$argv[1] \
-        $git_toplevel/py/projects/$argv[1] \
-        $git_toplevel/py/lib/$argv[1] \
-        $git_toplevel/py/tools/tools/$argv[1] \
-        $git_toplevel/ex/services/$argv[1] \
-        $git_toplevel/rb/services/$argv[1] \
-        $code_checkout/js/packages/$argv[1] \
-        $code_checkout/go/services/$argv[1] \
-        $code_checkout/go/lib/$argv[1] \
-        $code_checkout/py/projects/$argv[1] \
-        $code_checkout/py/lib/$argv[1] \
-        $code_checkout/py/tools/tools/$argv[1] \
-        $code_checkout/ex/services/$argv[1] \
-        $code_checkout/rb/services/$argv[1] \
-        $GOPATH/src/github.com/opendoor-labs/$argv[1] \
-        $HOME/$argv[1]
+
+    set options
+    for toplevel in $git_toplevel $code_checkout
+        set options \
+            $options \
+            $toplevel/js/packages/$argv[1] \
+            $toplevel/go/services/$argv[1] \
+            $toplevel/go/lib/$argv[1] \
+            $toplevel/go/tools/$argv[1] \
+            $toplevel/py/projects/$argv[1] \
+            $toplevel/py/lib/$argv[1] \
+            $toplevel/py/tools/tools/$argv[1] \
+            $toplevel/py/tools/$argv[1] \
+            $toplevel/ex/services/$argv[1] \
+            $toplevel/rb/services/$argv[1]
+    end
+
     for option in $options
         if [ -d $option ]
             echo cd (tilde $option)
@@ -561,10 +582,15 @@ function touchp
     touch "$argv[1]"
 end
 
+# move the branch you're currently on to $argv[1]
+# if no arg passed, migrate to origin/<your current branch>
 function git-migrate
-    set -l source (git rev-parse --abbrev-ref HEAD)
-    set -l dest (git rev-parse $argv[1])
-    git checkout $dest && git branch -f $source $dest && git checkout $source
+    set -l src (git rev-parse --abbrev-ref HEAD)
+    set -l dst $argv[1]
+    if ! [ "$dst" ]
+        set dst (git-remote-ref $src)
+    end
+    git checkout $dst && git branch -f $src $dst && git checkout $src
 end
 
 function kubeexec
@@ -620,6 +646,8 @@ function 
 end
 
 
+# tar unzip any archive format: tar.gz, tgz, tar.bz2, tar.xz, zip
+# tx file.tar.gz
 function tx
     set -l tarball $argv[1]
     if [ -z "$tarball" ]
@@ -657,38 +685,18 @@ function tx
     command $command
 end
 
-# export NVM_DIR="$HOME/.config/nvm"
-# # [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
-# # [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" # This loads nvm bash_completion
-
-# # https://github.com/nvm-sh/nvm#fish
-# function nvm
-#     bass source $NVM_DIR/nvm.sh --no-use ';' nvm $argv
-# end
-
-# # ~/.config/fish/functions/nvm_find_nvmrc.fish
-# function nvm_find_nvmrc
-#     bass source $NVM_DIR/nvm.sh --no-use ';' nvm_find_nvmrc
-# end
-
-# # ~/.config/fish/functions/load_nvm.fish
-# function load_nvm --on-variable="PWD"
-#     set -l default_node_version (nvm version default)
-#     set -l node_version (nvm version)
-#     set -l nvmrc_path (nvm_find_nvmrc)
-#     if test -n "$nvmrc_path"
-#         set -l nvmrc_node_version (nvm version (cat $nvmrc_path))
-#         if test "$nvmrc_node_version" = N/A
-#             nvm install (cat $nvmrc_path)
-#         else if test nvmrc_node_version != node_version
-#             nvm use $nvmrc_node_version
-#         end
-#     else if test "$node_version" != "$default_node_version"
-#         echo "Reverting to default Node version"
-#         nvm use default
-#     end
-# end
-
+# opendoor edit - clone or open this repo
+function oe
+    set -l repo $argv[1]
+    if [ -z "$repo" ]
+        echo "Usage: oe <repo>"
+        return 1
+    end
+    if ! [ -d ~/$repo ]
+        git clone git@github.com:opendoor-labs/$repo.git ~/$repo
+    end
+    code ~/$repo
+end
 
 [ -f ~/.config/fish/hostname-$hostname.fish ] && source ~/.config/fish/hostname-$hostname.fish
 [ -f ~/.config/fish/secrets.fish ] && source ~/.config/fish/secrets.fish
@@ -699,29 +707,10 @@ end
 
 # tabtab source for serverless package
 # uninstall by removing these lines or running `tabtab uninstall serverless`
-[ -f /Users/brianmalehorn/go/src/github.com/opendoor-labs/code/js/packages/cloudflare-worker/node_modules/tabtab/.completions/serverless.fish ]
-and source /Users/brianmalehorn/go/src/github.com/opendoor-labs/code/js/packages/cloudflare-worker/node_modules/tabtab/.completions/serverless.fish
-# tabtab source for sls package
-# uninstall by removing these lines or running `tabtab uninstall sls`
-[ -f /Users/brianmalehorn/go/src/github.com/opendoor-labs/code/js/packages/cloudflare-worker/node_modules/tabtab/.completions/sls.fish ]
-and source /Users/brianmalehorn/go/src/github.com/opendoor-labs/code/js/packages/cloudflare-worker/node_modules/tabtab/.completions/sls.fish
-# tabtab source for slss package
-# uninstall by removing these lines or running `tabtab uninstall slss`
-[ -f /Users/brianmalehorn/go/src/github.com/opendoor-labs/code/js/packages/cloudflare-worker/node_modules/tabtab/.completions/slss.fish ]
-and source /Users/brianmalehorn/go/src/github.com/opendoor-labs/code/js/packages/cloudflare-worker/node_modules/tabtab/.completions/slss.fish
-
-[ -f /Users/brianmalehorn/go/src/github.com/opendoor-labs/code/scripts/infra/sourced_on_shell_load.fish ] && source '/Users/brianmalehorn/go/src/github.com/opendoor-labs/code/scripts/infra/sourced_on_shell_load.fish'
 
 [ -f /opt/homebrew/opt/asdf/asdf.fish ] && source /opt/homebrew/opt/asdf/asdf.fish
 [ -f /usr/local/opt/asdf/asdf.fish ] && source /usr/local/opt/asdf/asdf.fish
 [ -f ~/.asdf/asdf.fish ] && source ~/.asdf/asdf.fish
-
-######### od shell tooling #########
-# these lines added by `code/scripts/development/maybe_install_od_shell_tooling.sh`
-set OD_CODE_ROOT "/Users/brianmalehorn/go/src/github.com/opendoor-labs/code"
-set OD_TOOL_SOURCE_SCRIPT "$OD_CODE_ROOT/scripts/infra/sourced_on_shell_load.fish"
-[ -f "$OD_TOOL_SOURCE_SCRIPT" ] && source "$OD_TOOL_SOURCE_SCRIPT"
-######### end of od shell tooling #########
 
 # # >>> conda initialize >>>
 # # !! Contents within this block are managed by 'conda init' !!
@@ -730,4 +719,12 @@ set OD_TOOL_SOURCE_SCRIPT "$OD_CODE_ROOT/scripts/infra/sourced_on_shell_load.fis
 
 export KOPS_STATE_STORE=s3://kops-opendoor-k8s-cluster-state-store
 
-direnv hook fish | source
+type -q direnv && direnv hook fish | source
+
+######### od shell tooling #########
+# these lines added by `code/scripts/development/maybe_install_od_shell_tooling.sh`
+set OD_CODE_ROOT "/Users/brian.malehorn/code"
+set OD_TOOL_SOURCE_SCRIPT "$OD_CODE_ROOT/scripts/infra/sourced_on_shell_load.fish"
+[ -f "$OD_TOOL_SOURCE_SCRIPT" ] && source "$OD_TOOL_SOURCE_SCRIPT"
+######### end of od shell tooling #########
+
