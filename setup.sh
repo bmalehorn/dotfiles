@@ -12,6 +12,10 @@ fi
 # shellcheck disable=SC2129
 echo hello >> ~/setup.txt
 
+# copy hidden files
+cp -rv "$dotfiles_dir"/.* ~/ 1>&2 >> ~/setup.txt
+
+# copy non-hidden files
 cp -rv "$dotfiles_dir"/* ~/ 1>&2 >> ~/setup.txt
 
 echo "setup.sh" >> ~/setup.txt
